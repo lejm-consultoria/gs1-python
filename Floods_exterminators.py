@@ -1,10 +1,22 @@
+# -*- coding: utf-8 -*-
+"""
+Script de avaliação de riscos e efeitos de enchentes no Brasil,
+coleção de dados, classificação de risco, impactos e sugestões de soluções.
 
+Autores:
+ - Murilo Mendes Marques (RM: 564193)
+ - Enzo Ramos Condomitti (RM: 565832)
+ - Lucca Santos (RM: 563961)
+"""
+
+# Banco de usuários (usuário: senha)
 banco_de_dados = {
     'Murilo': '1234@senha',
     'Enzo': 'kazoperdido5',
     'Suricato': 'ohomemperdido39'
 }
 
+# Lista de áreas cadastradas
 banco_de_dados_areas_cadastradas = ['paulista']
 
 
@@ -22,8 +34,18 @@ def checa_credenciais(dados):
         if usuario in dados and dados[usuario] == senha:
             print(f"\nLogin bem-sucedido! Bem-vindo, {usuario}.\n")
             return usuario
-        else:
-            print("Erro! Usuário ou senha incorretos. Tente novamente.\n")
+        print("Erro! Usuário ou senha incorretos. Tente novamente.\n")
+
+
+def coleta_texto_nao_vazio(prompt):
+    """
+    Solicita uma string não vazia.
+    """
+    while True:
+        texto = input(f"{prompt}: ").strip()
+        if texto:
+            return texto
+        print("Entrada inválida. Não pode ser vazio.")
 
 
 def cadastro_area(dados, nova_area):
@@ -45,11 +67,11 @@ def loop_cadastro_areas():
     Permite ao usuário cadastrar várias áreas em sequência.
     """
     while True:
-        resposta = input("\nDeseja adicionar outra área? (sim/não): ").strip().lower()
-        if resposta == "sim":
-            nova = input("Digite o nome da nova área: ").strip()
+        resp = input("\nDeseja adicionar outra área? (sim/não): ").strip().lower()
+        if resp == "sim":
+            nova = coleta_texto_nao_vazio("Digite o nome da nova área")
             cadastro_area(banco_de_dados_areas_cadastradas, nova)
-        elif resposta == "não":
+        elif resp == "não":
             print("Encerrando cadastro de áreas.\n")
             break
         else:
@@ -65,7 +87,6 @@ def remover_area(dados):
     if not dados:
         print("Não há áreas cadastradas para remover.")
         return
-
     print("Áreas cadastradas:", ", ".join(dados))
     alvo = input("Digite o nome da área que deseja remover: ").strip()
     if alvo in dados:
@@ -90,8 +111,7 @@ def coleta_numero(prompt, minimo=0, maximo=100):
             valor = int(input(f"{prompt} ({minimo}-{maximo}): "))
             if minimo <= valor <= maximo:
                 return valor
-            else:
-                print(f"Digite um valor entre {minimo} e {maximo}.")
+            print(f"Digite um valor entre {minimo} e {maximo}.")
         except ValueError:
             print("Entrada inválida. Digite um número inteiro.")
 
@@ -99,28 +119,20 @@ def coleta_numero(prompt, minimo=0, maximo=100):
 def classificar_risco(volume, saturacao):
     """
     Classifica o risco de enchente com base na média de volume e saturação.
-    Parâmetros:
-      volume (int): percentual de volume de água.
-      saturacao (int): percentual de saturação do solo.
-    Retorna:
-      risco (str): 'Baixo', 'Médio' ou 'Alto'.
+    Retorna: 'Baixo', 'Médio' ou 'Alto'.
     """
     media = (volume + saturacao) / 2
     if media >= 70:
         return "Alto"
-    elif media >= 40:
+    if media >= 40:
         return "Médio"
-    else:
-        return "Baixo"
+    return "Baixo"
 
 
 def coletar_dados_enchente(area):
     """
     Coleta os dados de enchente para uma área específica.
-    Parâmetros:
-      area (str): nome da área.
-    Retorna:
-      dict: {'volume': int, 'saturacao': int, 'risco': str}
+    Retorna: dict com volume, saturação e risco.
     """
     print(f"\n--- Coleta de dados para área: {area} ---")
     vol = coleta_numero("Informe o volume de água (%)")
@@ -129,36 +141,82 @@ def coletar_dados_enchente(area):
     return {'volume': vol, 'saturacao': sat, 'risco': risco}
 
 
-def exibir_relatorio(area, dados):
+def coletar_efeitos_enchente(area):
     """
-    Exibe um relatório claro sobre os dados de enchente de uma área.
-    Parâmetros:
-      area (str): nome da área.
-      dados (dict): saída de coletar_dados_enchente.
+    Coleta dados sobre os efeitos da enchente em uma área.
+    Retorna: dict com residências afetadas, desalojados e perdas estimadas.
     """
-    print(f"\n===== Relatório de Enchentes: {area.upper()} =====")
+    print(f"\n--- Coleta de efeitos para área: {area} ---")
+    residencias = coleta_numero("Residências afetadas", 0, 10000)
+    desalojados = coleta_numero("Pessoas desalojadas", 0, 10000)
+    perdas = coleta_numero("Perdas financeiras estimadas (em mil R$)", 0, 100000)
+    return {
+        'residencias': residencias,
+        'desalojados': desalojados,
+        'perdas_estimadas': perdas
+    }
+
+
+def sugerir_medidas(risco):
+    """
+    Sugere medidas de mitigação com base no nível de risco.
+    Retorna: lista de strings.
+    """
+    if risco == "Alto":
+        return [
+            "Evacuar imediatamente as áreas de maior risco.",
+            "Instalar barreiras temporárias (sacos de areia).",
+            "Desobstruir bueiros e valetas."
+        ]
+    if risco == "Médio":
+        return [
+            "Manter vigilância constante e equipe de prontidão.",
+            "Distribuir sacos de areia nas áreas críticas.",
+            "Monitorar boletins meteorológicos."
+        ]
+    return [
+        "Continuar o monitoramento regular.",
+        "Realizar manutenção preventiva em sistemas de drenagem.",
+        "Educar a comunidade sobre sinais de alerta."
+    ]
+
+
+def exibir_relatorio(area, dados, efeitos, medidas):
+    """
+    Exibe um relatório claro sobre os dados e efeitos da enchente, mais as medidas sugeridas.
+    """
+    print(f"\n===== Relatório: {area.upper()} =====")
     print(f"Volume de água:       {dados['volume']}%")
     print(f"Saturação do solo:    {dados['saturacao']}%")
     print(f"Classificação de risco: {dados['risco']}")
+    print("\n-- Efeitos Observados --")
+    print(f"Residências afetadas:  {efeitos['residencias']}")
+    print(f"Pessoas desalojadas:   {efeitos['desalojados']}")
+    print(f"Perdas financeiras:    R$ {efeitos['perdas_estimadas']*1000:.2f}")
+    print("\n-- Medidas Sugeridas --")
+    for m in medidas:
+        print(f"• {m}")
     print("=" * 40)
 
 
 def main():
+    # 1. Autenticação
     checa_credenciais(banco_de_dados)
 
-    cadastro_area(banco_de_dados_areas_cadastradas,
-                  input("Digite uma nova área para cadastrar: ").strip())
+    # 2. Cadastro de áreas
+    primeira = coleta_texto_nao_vazio("Digite uma nova área para cadastrar")
+    cadastro_area(banco_de_dados_areas_cadastradas, primeira)
     loop_cadastro_areas()
-
     if input("Deseja remover alguma área? (sim/não): ").strip().lower() == "sim":
         remover_area(banco_de_dados_areas_cadastradas)
 
+    # 3. Coleta e relatório
     dados_enchentes = {}
     for area in banco_de_dados_areas_cadastradas:
-        dados_enchentes[area] = coletar_dados_enchente(area)
-
-    for area, dados in dados_enchentes.items():
-        exibir_relatorio(area, dados)
+        dados = coletar_dados_enchente(area)
+        efeitos = coletar_efeitos_enchente(area)
+        medidas = sugerir_medidas(dados['risco'])
+        exibir_relatorio(area, dados, efeitos, medidas)
 
 
 if __name__ == "__main__":
